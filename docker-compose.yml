@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: bitcart
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123@}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bitcart_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD:-123@}
+    volumes:
+      - redis_data:/data
+    networks:
+      - bitcart_network
+
+  # BitcartCC Merchants API (Backend)
+  backend:
+    image: bitcart/bitcart:stable
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DB_HOST: postgres
+      DB_DATABASE: bitcart
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-123@}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-123@}
+      BITCART_HOST: ${BITCART_HOST}
+      BITCART_LETSENCRYPT_EMAIL: ${BITCART_LETSENCRYPT_EMAIL}
+      BTC_NETWORK: ${BTC_NETWORK:-mainnet}
+      BTC_LIGHTNING: ${BTC_LIGHTNING:-false}
+      ETH_NETWORK: ${ETH_NETWORK:-mainnet}
+      LTC_NETWORK: ${LTC_NETWORK:-mainnet}
+      LTC_LIGHTNING: ${LTC_LIGHTNING:-false}
+    volumes:
+      - bitcart_data:/app/data
+    networks:
+      - bitcart_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bitcart-api.rule=Host(`${BITCART_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.services.bitcart-api.loadbalancer.server.port=8000"
+
+  # BitcartCC Admin Panel
+  admin:
+    image: bitcart/bitcart-admin:stable
+    depends_on:
+      - backend
+    environment:
+      BITCART_ADMIN_API_URL: https://${BITCART_HOST}
+      BITCART_ADMIN_HOST: ${BITCART_ADMIN_HOST:-${BITCART_HOST}}
+    networks:
+      - bitcart_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bitcart-admin.rule=Host(`${BITCART_ADMIN_HOST:-${BITCART_HOST}}`) && PathPrefix(`/admin`)"
+      - "traefik.http.services.bitcart-admin.loadbalancer.server.port=4000"
+
+  # BitcartCC Store
+  store:
+    image: bitcart/bitcart-store:stable
+    depends_on:
+      - backend
+    environment:
+      BITCART_STORE_API_URL: https://${BITCART_HOST}
+      BITCART_STORE_HOST: ${BITCART_STORE_HOST:-${BITCART_HOST}}
+    networks:
+      - bitcart_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bitcart-store.rule=Host(`${BITCART_STORE_HOST:-${BITCART_HOST}}`) && PathPrefix(`/store`)"
+      - "traefik.http.services.bitcart-store.loadbalancer.server.port=3000"
+
+  # Bitcoin Daemon
+  bitcoin:
+    image: bitcart/bitcoin:stable
+    environment:
+      BTC_NETWORK: ${BTC_NETWORK:-mainnet}
+      BTC_LIGHTNING: ${BTC_LIGHTNING:-false}
+    volumes:
+      - bitcoin_data:/data
+    networks:
+      - bitcart_network
+
+  # Ethereum Daemon (optional)
+  ethereum:
+    image: bitcart/ethereum:stable
+    environment:
+      ETH_NETWORK: ${ETH_NETWORK:-mainnet}
+    volumes:
+      - ethereum_data:/data
+    networks:
+      - bitcart_network
+
+  # Litecoin Daemon (optional)
+  litecoin:
+    image: bitcart/litecoin:stable
+    environment:
+      LTC_NETWORK: ${LTC_NETWORK:-mainnet}
+      LTC_LIGHTNING: ${LTC_LIGHTNING:-false}
+    volumes:
+      - litecoin_data:/data
+    networks:
+      - bitcart_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  bitcart_data:
+  bitcoin_data:
+  ethereum_data:
+  litecoin_data:
+
+networks:
+  bitcart_network:
+    driver: bridge
