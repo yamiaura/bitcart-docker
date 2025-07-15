@@ -24,7 +24,7 @@ services:
 
   # BitcartCC Merchants API (Backend)
   backend:
-    image: bitcart/bitcart:stable
+    image: bitcartcc/bitcart:stable
     depends_on:
       - postgres
       - redis
@@ -53,7 +53,7 @@ services:
 
   # BitcartCC Admin Panel
   admin:
-    image: bitcart/bitcart-admin:stable
+    image: bitcartcc/bitcart-admin:stable
     depends_on:
       - backend
     environment:
@@ -68,7 +68,7 @@ services:
 
   # BitcartCC Store
   store:
-    image: bitcart/bitcart-store:stable
+    image: bitcartcc/bitcart-store:stable
     depends_on:
       - backend
     environment:
@@ -83,7 +83,7 @@ services:
 
   # Bitcoin Daemon
   bitcoin:
-    image: bitcart/bitcoin:stable
+    image: bitcartcc/bitcart-btc:stable
     environment:
       BTC_NETWORK: ${BTC_NETWORK:-mainnet}
       BTC_LIGHTNING: ${BTC_LIGHTNING:-false}
@@ -94,7 +94,7 @@ services:
 
   # Ethereum Daemon (optional)
   ethereum:
-    image: bitcart/ethereum:stable
+    image: bitcartcc/bitcart-eth:stable
     environment:
       ETH_NETWORK: ${ETH_NETWORK:-mainnet}
     volumes:
@@ -104,7 +104,7 @@ services:
 
   # Litecoin Daemon (optional)
   litecoin:
-    image: bitcart/litecoin:stable
+    image: bitcartcc/bitcart-ltc:stable
     environment:
       LTC_NETWORK: ${LTC_NETWORK:-mainnet}
       LTC_LIGHTNING: ${LTC_LIGHTNING:-false}
